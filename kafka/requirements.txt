@@ -1,0 +1,4 @@
+kafka-python
+hdfs
+# Optional: add pyarrow if using Parquet later
+# pyarrow==14.0.1
