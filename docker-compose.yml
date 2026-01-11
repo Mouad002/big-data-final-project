@@ -32,8 +32,6 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-    # networks:
-    #   - traffic-net
 
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
@@ -47,9 +45,6 @@ services:
       - ALLOW_ANONYMOUS_ACCESS=true
     depends_on:
       - kafka
-        
-    # networks:
-    #   - traffic-net
 
   traffic-generator:
     build: ./generator
@@ -57,8 +52,6 @@ services:
       - kafka
     environment:
       KAFKA_BROKER: kafka:9092
-    # networks:
-    #   - traffic-net
 
   namenode:
     image: apache/hadoop:3.4.1
@@ -68,6 +61,7 @@ services:
         hdfs namenode &
         sleep 15  # Wait for namenode to be ready
         hdfs dfs -mkdir -p /data/raw/traffic
+        hdfs dfs -chmod -R 777 /data
         wait
       "
     ports:
@@ -84,7 +78,7 @@ services:
     command: ["hdfs", "datanode"]
     env_file:
       - ./hdfs/config
-  
+
   kafka-to-hdfs:
     build: ./kafka
     depends_on:
@@ -92,10 +86,14 @@ services:
       - namenode
       - datanode
 
+  spark-processor:
+    build: ./spark
+    depends_on:
+      - namenode
+      - datanode
+      # Optional: wait for raw data to exist (or run manually)
+    environment:
+      - SPARK_MODE=client
 
 volumes:
   global_data:
-
-# networks:
-  # traffic-net:
-  #   driver: bridge

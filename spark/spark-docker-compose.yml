@@ -1,0 +1,9 @@
+services:
+  spark-processor:
+    build: ./spark
+    depends_on:
+      - namenode
+      - datanode
+      # Optional: wait for raw data to exist (or run manually)
+    environment:
+      - SPARK_MODE=client  
