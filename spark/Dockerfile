@@ -19,3 +19,7 @@ CMD ["spark-submit", \
      "--master", "local[*]", \
      "--name", "TrafficProcessingJob", \
      "/opt/spark-apps/traffic_processor.py"]
+
+# COPY run_periodic.sh /opt/spark-apps/run_periodic.sh
+# RUN chmod +x /opt/spark-apps/run_periodic.sh
+# CMD ["/opt/spark-apps/run_periodic.sh"]
