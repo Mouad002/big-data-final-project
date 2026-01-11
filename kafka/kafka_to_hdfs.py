@@ -15,7 +15,7 @@ GROUP_ID = "traffic-hdfs-consumer"
 
 HDFS_URL = "http://namenode:9870"
 HDFS_BASE_PATH = "/data/raw/traffic"
-HDFS_USER = "hdfs"
+HDFS_USER = "hadoop"
 
 RETRY_DELAY = 5  # seconds
 
@@ -56,18 +56,21 @@ while True:
                 zone = event["zone"]
 
                 hdfs_dir = f"{HDFS_BASE_PATH}/date={date_str}/zone={zone}"
-                hdfs_file = f"{hdfs_dir}/traffic.json"
+
+                # Create unique filename using timestamp + microsecond or UUID
+                timestamp_ms = int(time.time() * 1000)
+                hdfs_file = f"{hdfs_dir}/event_{timestamp_ms}.json"
 
                 hdfs_client.makedirs(hdfs_dir)
 
-                if not hdfs_client.status(hdfs_file, strict=False):
-                    with hdfs_client.write(hdfs_file, encoding="utf-8") as writer:
-                        writer.write(json.dumps(event) + "\n")
-                else:
-                    with hdfs_client.write(
-                        hdfs_file, append=True, encoding="utf-8"
-                    ) as writer:
-                        writer.write(json.dumps(event) + "\n")
+                with hdfs_client.write(hdfs_file, encoding="utf-8") as writer:
+                    writer.write(json.dumps(event) + "\n")
+                # if not hdfs_client.status(hdfs_file, strict=False):
+                #     with hdfs_client.write(hdfs_file, encoding="utf-8") as writer:
+                #         writer.write(json.dumps(event) + "\n")
+                # else:
+                #     with hdfs_client.write(hdfs_file, append=True, encoding="utf-8") as writer:
+                #         writer.write(json.dumps(event) + "\n")
 
             except HdfsError as e:
                 print(f"⚠ HDFS error: {e}")

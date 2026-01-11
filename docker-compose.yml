@@ -63,7 +63,13 @@ services:
   namenode:
     image: apache/hadoop:3.4.1
     hostname: namenode
-    command: ["hdfs", "namenode"]
+    command: |
+      sh -c "
+        hdfs namenode &
+        sleep 15  # Wait for namenode to be ready
+        hdfs dfs -mkdir -p /data/raw/traffic
+        wait
+      "
     ports:
       - 9870:9870
       - 8020:8020
@@ -85,15 +91,6 @@ services:
       - kafka
       - namenode
       - datanode
-
-  hdfs-init:
-    image: apache/hadoop:3.4.1
-    depends_on:
-      - namenode
-      - datanode
-    volumes:
-      - ./hdfs/init-hdfs.sh:/init-hdfs.sh
-    entrypoint: ["/bin/bash", "/init-hdfs.sh"]
 
 
 volumes:
