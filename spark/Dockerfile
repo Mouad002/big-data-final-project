@@ -15,10 +15,13 @@ USER spark
 COPY traffic_processor.py /opt/spark-apps/traffic_processor.py
 
 # Set entrypoint to run the job (you can also trigger manually)
-CMD ["spark-submit", \
-     "--master", "local[*]", \
-     "--name", "TrafficProcessingJob", \
-     "/opt/spark-apps/traffic_processor.py"]
+# CMD ["spark-submit", \
+#      "--master", "local[*]", \
+#      "--name", "TrafficProcessingJob", \
+#      "/opt/spark-apps/traffic_processor.py"]
+
+# Do NOT auto-run Spark
+CMD ["sleep", "infinity"]
 
 # COPY run_periodic.sh /opt/spark-apps/run_periodic.sh
 # RUN chmod +x /opt/spark-apps/run_periodic.sh

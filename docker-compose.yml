@@ -1,7 +1,7 @@
 services:
   zookeeper:
     image: confluentinc/cp-zookeeper:7.3.0
-    container_name: zookeeper-cnt
+    container_name: zookeeper
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
@@ -15,6 +15,7 @@ services:
 
   kafka:
     image: confluentinc/cp-kafka:7.3.0
+    container_name: kafka
     ports:
       - "9092:9092"
     depends_on:
@@ -35,6 +36,7 @@ services:
 
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
     ports:
       - "8089:8080"
     environment:
@@ -48,6 +50,7 @@ services:
 
   namenode:
     image: apache/hadoop:3.4.1
+    container_name: namenode
     hostname: namenode
     command: |
       sh -c "
@@ -67,13 +70,15 @@ services:
 
   datanode:
     image: apache/hadoop:3.4.1
+    container_name: datanode
     hostname: datanode
     command: ["hdfs", "datanode"]
     env_file:
       - ./hdfs/config
 
-  traffic-generator:
+  traffic-generator:  
     build: ./generator
+    container_name: traffic-generator
     depends_on:
       - kafka
     environment:
@@ -81,6 +86,7 @@ services:
 
   kafka-to-hdfs:
     build: ./kafka
+    container_name: kafka-to-hdfs
     depends_on:
       - kafka
       - namenode
@@ -88,6 +94,7 @@ services:
 
   spark-processor:
     build: ./spark
+    container_name: spark-processor
     depends_on:
       - namenode
       - datanode
@@ -95,63 +102,61 @@ services:
     environment:
       - SPARK_MODE=client
 
-  grafana:
-    image: grafana/grafana:latest
-    container_name: grafana
-    ports:
-      - "3000:3000"
-    environment:
-      GF_SECURITY_ADMIN_PASSWORD: admin
-      GF_USERS_ALLOW_SIGN_UP: "false"
-    volumes:
-      - grafana-storage:/var/lib/grafana
-    depends_on:
-      - namenode
-  # postgres-airflow:
-  #   image: postgres:13
-  #   environment:
-  #     POSTGRES_USER: airflow
-  #     POSTGRES_PASSWORD: airflow
-  #     POSTGRES_DB: airflow
-
-  # airflow-webserver:
-  #   image: apache/airflow:2.8.1
-  #   depends_on:
-  #     - postgres-airflow
-  #   environment:
-  #     AIRFLOW__CORE__EXECUTOR: LocalExecutor
-  #     AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres-airflow/airflow
-  #     AIRFLOW__CORE__LOAD_EXAMPLES: "false"
-  #   volumes:
-  #     - ./dags:/opt/airflow/dags
-  #     - ./data:/opt/airflow/data
-  #   ports:
-  #     - "8080:8080"
-  #   command: webserver
-
-  # airflow-scheduler:
-  #   image: apache/airflow:2.8.1
-  #   depends_on:
-  #     - airflow-webserver
-  #   environment:
-  #     AIRFLOW__CORE__EXECUTOR: LocalExecutor
-  #     AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
-  #   volumes:
-  #     - ./dags:/opt/airflow/dags
-  #     - ./data:/opt/airflow/data
-  #   command: scheduler
-  postgres:
+  airflow-db:
     image: postgres:15
-    container_name: postgres-cnt
+    container_name: airflow-db
     environment:
-      POSTGRES_DB: smartcity
-      POSTGRES_USER: grafana
-      POSTGRES_PASSWORD: grafana
-    ports:
-      - "5432:5432"
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
     volumes:
-      - grafana-postgres-data:/var/lib/postgresql/data
+      - airflow-db-data:/var/lib/postgresql/data
+
+  airflow-init:
+    image: apache/airflow:2.8.1
+    container_name: airflow-init
+    depends_on:
+      - airflow-db
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-db/airflow
+      AIRFLOW__WEBSERVER__SECRET_KEY: "9098-9879-8211-4532"
+    command: |
+      bash -c "
+      airflow db migrate
+      airflow users create --username admin --password admin --firstname admin --lastname admin --role Admin --email admin@example.com
+      "
+
+  airflow-webserver:
+    image: apache/airflow:2.8.1
+    container_name: airflow-webserver
+    depends_on:
+      - airflow-init
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-db/airflow
+      AIRFLOW__WEBSERVER__SECRET_KEY: "9098-9879-8211-4532"
+    command: airflow webserver
+
+  airflow-scheduler:
+    image: apache/airflow:2.8.1
+    container_name: airflow-scheduler
+    depends_on:
+      - airflow-webserver
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-db/airflow
+      AIRFLOW__WEBSERVER__SECRET_KEY: "9098-9879-8211-4532"
+    command: airflow scheduler
+
 volumes:
   global_data:
-  grafana-storage:
-  grafana-postgres-data: 
+  airflow-db-data:

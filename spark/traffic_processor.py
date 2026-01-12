@@ -86,6 +86,16 @@
 
 # Parse event_time and extract date
 from pyspark.sql.functions import col, avg, to_date
+from pyspark.sql import SparkSession
+
+spark = SparkSession.builder \
+    .appName("Traffic Processing") \
+    .config("spark.hadoop.dfs.client.use.datanode.hostname", "true") \
+    .config("spark.hadoop.dfs.replication", "1") \
+    .getOrCreate()
+
+# Optional: reduce log verbosity
+spark.sparkContext.setLogLevel("WARN")
 
 df = spark.read.option("recursiveFileLookup", "true").json("hdfs://namenode:8020/data/raw/traffic")
 
