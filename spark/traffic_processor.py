@@ -88,6 +88,14 @@
 from pyspark.sql.functions import col, avg, to_date
 from pyspark.sql import SparkSession
 
+jdbc_url = "jdbc:postgresql://traffic-postgres:5432/traffic_analytics"
+jdbc_properties = {
+    "user": "traffic",
+    "password": "traffic",
+    "driver": "org.postgresql.Driver"
+}
+
+
 spark = SparkSession.builder \
     .appName("Traffic Processing") \
     .config("spark.hadoop.dfs.client.use.datanode.hostname", "true") \
@@ -118,21 +126,34 @@ by_congestion_date = df_with_date.groupBy("event_date", "zone").agg(
 )
 
 # Save with date partitioning
+# by_zone_date.write \
+#     .mode("overwrite") \
+#     .partitionBy("event_date") \
+#     .parquet("hdfs://namenode:8020/data/processed/traffic/by_zone_date")
+
 by_zone_date.write \
     .mode("overwrite") \
-    .partitionBy("event_date") \
-    .parquet("hdfs://namenode:8020/data/processed/traffic/by_zone_date")
+    .jdbc(jdbc_url, "traffic_by_zone_date", properties=jdbc_properties)
+
+
+# by_route_date.write \
+#     .mode("overwrite") \
+#     .partitionBy("event_date") \
+#     .parquet("hdfs://namenode:8020/data/processed/traffic/by_route_date")
 
 by_route_date.write \
     .mode("overwrite") \
-    .partitionBy("event_date") \
-    .parquet("hdfs://namenode:8020/data/processed/traffic/by_route_date")
+    .jdbc(jdbc_url, "traffic_by_route_date", properties=jdbc_properties)
+
+
+# by_congestion_date.write \
+#     .mode("overwrite") \
+#     .partitionBy("event_date") \
+#     .parquet("hdfs://namenode:8020/data/processed/traffic/by_congestion_date")
 
 by_congestion_date.write \
     .mode("overwrite") \
-    .partitionBy("event_date") \
-    .parquet("hdfs://namenode:8020/data/processed/traffic/by_congestion_date")
-
+    .jdbc(jdbc_url, "traffic_by_congestion_date", properties=jdbc_properties)
 
 
 

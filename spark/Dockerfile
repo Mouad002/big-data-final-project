@@ -4,6 +4,10 @@ FROM apache/spark:latest
 # Switch to root to install Python packages
 USER root
 
+# Install JDBC driver
+RUN curl -L -o /opt/spark/jars/postgresql.jar \
+    https://jdbc.postgresql.org/download/postgresql-42.7.1.jar
+
 # Install Python deps if needed (usually not required for PySpark)
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt

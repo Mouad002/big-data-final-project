@@ -157,6 +157,28 @@ services:
       AIRFLOW__WEBSERVER__SECRET_KEY: "9098-9879-8211-4532"
     command: airflow scheduler
 
+  traffic-postgres:
+    image: postgres:15
+    container_name: traffic-postgres
+    environment:
+      POSTGRES_DB: traffic_analytics
+      POSTGRES_USER: traffic
+      POSTGRES_PASSWORD: traffic
+    ports:
+      - "5433:5432"
+    volumes:
+      - traffic-postgres-data:/var/lib/postgresql/data
+
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+
 volumes:
   global_data:
   airflow-db-data:
+  traffic-postgres-data:
